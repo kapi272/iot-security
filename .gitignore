@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# T-Pot Runtime Data
+tpot-data/*
+!tpot-data/suricata/
+!tpot-data/suricata/entrypoint.sh
+tpot-data/suricata/log/
+!tpot-data/nginx/
+!tpot-data/nginx/cert/

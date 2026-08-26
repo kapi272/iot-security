@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    container_name: elasticsearch
+    image: ghcr.io/telekom-security/elasticsearch:24.04.1
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms2048m -Xmx2048m
+    ports:
+      - "127.0.0.1:64298:9200"
+    volumes:
+      - ./tpot-data/elasticsearch:/data
+    restart: always
+    mem_limit: 4g
+
+  logstash:
+    container_name: logstash
+    image: ghcr.io/telekom-security/logstash:24.04.1
+    environment:
+      - LS_JAVA_OPTS=-Xms1024m -Xmx1024m
+      - TPOT_TYPE=HIVE
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./tpot-data:/data
+    restart: always
+    mem_limit: 2g
+
+  kibana:
+    container_name: kibana
+    image: ghcr.io/telekom-security/kibana:24.04.1
+    depends_on:
+      - elasticsearch
+    ports:
+      - "127.0.0.1:64296:5601"
+    restart: always
+    mem_limit: 1g
+
+  cowrie:
+    container_name: cowrie
+    image: ghcr.io/telekom-security/cowrie:24.04.1
+    ports:
+      - "2222:22"
+      - "2223:23"
+    volumes:
+      - ./tpot-data/cowrie/log:/home/cowrie/cowrie/log
+    restart: always
+
+  suricata:
+    container_name: suricata
+    image: ghcr.io/telekom-security/suricata:24.04.1
+    environment:
+      - OINKCODE=OPEN
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+      - NET_RAW
+    volumes:
+      - ./tpot-data/suricata/log:/var/log/suricata
+      - ./tpot-data/suricata/entrypoint.sh:/usr/bin/entrypoint.sh:ro
+    restart: always
+
+  nginx:
+    container_name: nginx
+    image: ghcr.io/telekom-security/nginx:24.04.1
+    environment:
+      - TPOT_OSTYPE=linux
+    ports:
+      - "64297:64297"
+    volumes:
+      - ./tpot-data/nginx/cert/:/etc/nginx/cert/:ro
+      - ./tpotweb.conf:/etc/nginx/conf.d/tpotweb.conf:ro
+    depends_on:
+      - kibana
+    restart: always
