@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Custom Tokens */
+    --bg-base: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --accent-primary: #0284C7;
+    --border-default: #E2E8F0;
+    --state-warning: #D97706;
+    --state-error: #DC2626;
+    --state-success: #059669;
+
+    --font-sans: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Shadcn Mappings */
+    --background: var(--bg-base);
+    --foreground: var(--text-primary);
+    --card: var(--bg-surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-surface);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--accent-primary);
+    --primary-foreground: #FFFFFF;
+    --secondary: #F1F5F9;
+    --secondary-foreground: #0F172A;
+    --muted: #F1F5F9;
+    --muted-foreground: var(--text-muted);
+    --accent: #F1F5F9;
+    --accent-foreground: #0F172A;
+    --destructive: var(--state-error);
+    --destructive-foreground: #FFFFFF;
+    --border: var(--border-default);
+    --input: var(--border-default);
+    --ring: var(--accent-primary);
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Custom Tokens */
+    --bg-base: #020617;
+    --bg-surface: #0F172A;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    --accent-primary: #38BDF8;
+    --border-default: #1E293B;
+    --state-warning: #FBBF24;
+    --state-error: #F87171;
+    --state-success: #34D399;
+
+    /* Shadcn Mappings */
+    --background: var(--bg-base);
+    --foreground: var(--text-primary);
+    --card: var(--bg-surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-surface);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--accent-primary);
+    --primary-foreground: #020617;
+    --secondary: #1E293B;
+    --secondary-foreground: #F8FAFC;
+    --muted: #1E293B;
+    --muted-foreground: var(--text-muted);
+    --accent: #1E293B;
+    --accent-foreground: #F8FAFC;
+    --destructive: var(--state-error);
+    --destructive-foreground: #020617;
+    --border: var(--border-default);
+    --input: var(--border-default);
+    --ring: var(--accent-primary);
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
