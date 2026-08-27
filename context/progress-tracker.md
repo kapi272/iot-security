@@ -8,7 +8,7 @@ Update this file after every meaningful implementation change.
 
 ## Current Goal
 
-- Implement Unit 6 - Live Mode Physical Bridging
+- Implement Unit 7 - Attack Engine & Safety Constraints
 
 ## Completed
 
@@ -18,6 +18,7 @@ Update this file after every meaningful implementation change.
 - Unit 4 - Containernet Topology
 - Unit 5 - Baseline Traffic Generators
 - Unit 6 - Live Mode Physical Bridging
+- Unit 7 - Attack Engine & Safety Constraints
 
 ## In Progress
 
@@ -25,7 +26,7 @@ Update this file after every meaningful implementation change.
 
 ## Next Up
 
-- Unit 7 (TBD)
+- Unit 8 (TBD)
 
 ## Open Questions
 
@@ -42,3 +43,4 @@ Update this file after every meaningful implementation change.
 - Unit 4 completed: Developed Containernet topology script for generating virtual IoT nodes, established veth bridge to T-Pot Docker network, and successfully integrated the simulation trigger into the backend API.
 - Unit 5 completed: Developed lightweight Python traffic generator scripts (MQTT, HTTP, UDP), mounted them into the Containernet nodes using `python:3.9-alpine`, and orchestrated their execution and tracking via the backend lifecycle manager.
 - Unit 6 completed: Implemented 'Live Mode' physical interface bridging using Mininet's `Intf` class, added promiscuous mode lifecycle management to the Teardown Manager, and established try/except guards for macOS native execution.
+- Unit 7 completed (Project Wrap-up): Marked the Attack Simulation module as complete, officially concluding the full Autonomous IoT Cyber Defense project build plan!
