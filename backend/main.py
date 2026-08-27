@@ -95,7 +95,10 @@ async def start_network(req: NetworkStartRequest):
     if req.mode == "simulation":
         if build_simulation_topology:
             try:
-                state.net = build_simulation_topology(req.node_count)
+                state.net, pids = build_simulation_topology(req.node_count)
+                if pids:
+                    state.active_pids.extend(pids)
+                    logger.info(f"Tracking {len(pids)} traffic generator processes.")
             except Exception as e:
                 logger.error(f"Failed to start simulation topology: {e}")
                 state.status = "error"
