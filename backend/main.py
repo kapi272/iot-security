@@ -7,6 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import logging
+import sys
+
+# Add parent directory to path to import topology
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from topology.simulated_network import build_simulation_topology
+except ImportError as e:
+    # Handle environment without mininet/containernet gracefully for testing
+    logging.warning(f"Failed to import topology module: {e}")
+    build_simulation_topology = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,6 +41,7 @@ app.add_middleware(
 class SystemState:
     status: str = "idle"
     active_pids: List[int] = []
+    net: Optional[Any] = None
 
 state = SystemState()
 
@@ -56,6 +67,15 @@ def teardown_environment():
     
     state.active_pids.clear()
     
+    if state.net is not None:
+        logger.info("Stopping Containernet network...")
+        try:
+            state.net.stop()
+        except Exception as e:
+            logger.warning(f"Error stopping network gracefully: {e}")
+        finally:
+            state.net = None
+            
     # 2. Cleanup Mininet
     logger.info("Running 'mn -c' to clean virtual network interfaces...")
     try:
@@ -71,7 +91,20 @@ async def start_network(req: NetworkStartRequest):
     
     state.status = "simulating"
     logger.info(f"Starting network with mode={req.mode}, nodes={req.node_count}, device={req.device_type}")
-    # TODO: In future units, we will launch the actual mininet topology here and track its PID
+    
+    if req.mode == "simulation":
+        if build_simulation_topology:
+            try:
+                state.net, pids = build_simulation_topology(req.node_count)
+                if pids:
+                    state.active_pids.extend(pids)
+                    logger.info(f"Tracking {len(pids)} traffic generator processes.")
+            except Exception as e:
+                logger.error(f"Failed to start simulation topology: {e}")
+                state.status = "error"
+                raise HTTPException(status_code=500, detail=f"Simulation failed: {e}")
+        else:
+            logger.warning("Containernet module missing, running in dry-run mode.")
     
     return {"status": "success", "message": "Network started in simulation mode"}
 
