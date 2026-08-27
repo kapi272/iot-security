@@ -97,3 +97,61 @@ def build_simulation_topology(node_count: int) -> Tuple[Containernet, List[int]]
             
     logger.info(f"Topology setup complete. Returning {len(pids)} traffic generator PIDs.")
     return net, pids
+
+
+def build_live_topology(interface: str) -> Containernet:
+    """
+    Builds the Containernet topology for live traffic analysis by bridging a physical interface.
+    Returns:
+        The Mininet network object.
+    """
+    logger.info("Initializing Live Mode network...")
+    net = Containernet(controller=Controller)
+    
+    logger.info("Adding default controller (c0)...")
+    net.addController('c0')
+    
+    logger.info("Adding OpenFlow virtual switch (s1)...")
+    s1 = net.addSwitch('s1')
+    
+    logger.info("Starting Mininet/Containernet network...")
+    net.start()
+    
+    # 1. Establish the T-Pot Virtual Bridge
+    bridge_interface = "br-74cf9d0e3e6d"
+    
+    veth_name_host = "veth-tpot-h"
+    veth_name_mn = "veth-tpot-mn"
+    
+    logger.info(f"Creating veth pair to link s1 to T-Pot bridge '{bridge_interface}'...")
+    try:
+        # Create veth pair
+        subprocess.run(["ip", "link", "add", veth_name_host, "type", "veth", "peer", "name", veth_name_mn], check=True, capture_output=True)
+        # Bring interfaces up
+        subprocess.run(["ip", "link", "set", veth_name_host, "up"], check=True, capture_output=True)
+        subprocess.run(["ip", "link", "set", veth_name_mn, "up"], check=True, capture_output=True)
+        
+        # Attach the host end to the Docker bridge
+        subprocess.run(["ip", "link", "set", veth_name_host, "master", bridge_interface], check=True, capture_output=True)
+        
+        # Attach the mininet end to the s1 switch
+        Intf(veth_name_mn, node=s1)
+        logger.info("Successfully established veth bridge to T-Pot.")
+        
+    except Exception as e:
+        logger.error(f"Failed to setup veth bridge (expected if not running on Linux as root): {e}")
+        
+    # 2. Attach Physical Interface
+    logger.info(f"Attaching physical interface '{interface}' to virtual switch...")
+    try:
+        # Attach interface to switch via Mininet Intf
+        Intf(interface, node=s1)
+        
+        # Set promiscuous mode so all traffic flows into the switch for Suricata
+        subprocess.run(["ip", "link", "set", interface, "promisc", "on"], check=True, capture_output=True)
+        logger.info(f"Interface '{interface}' bound and promiscuous mode enabled.")
+    except Exception as e:
+        logger.error(f"Failed to attach physical interface '{interface}' (expected on macOS or non-root): {e}")
+        
+    logger.info("Live topology setup complete.")
+    return net

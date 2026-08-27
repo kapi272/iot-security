@@ -12,11 +12,12 @@ import sys
 # Add parent directory to path to import topology
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
-    from topology.simulated_network import build_simulation_topology
+    from topology.simulated_network import build_simulation_topology, build_live_topology
 except ImportError as e:
     # Handle environment without mininet/containernet gracefully for testing
     logging.warning(f"Failed to import topology module: {e}")
     build_simulation_topology = None
+    build_live_topology = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class SystemState:
     status: str = "idle"
     active_pids: List[int] = []
     net: Optional[Any] = None
+    promisc_interface: Optional[str] = None
 
 state = SystemState()
 
@@ -50,6 +52,7 @@ class NetworkStartRequest(BaseModel):
     mode: str
     node_count: int
     device_type: str
+    interface: Optional[str] = None
 
 class AttackRequest(BaseModel):
     attack_type: str
@@ -67,7 +70,17 @@ def teardown_environment():
     
     state.active_pids.clear()
     
-    if state.net is not None:
+    # 2. Cleanup Promiscuous Interface if Live Mode was used
+    if state.promisc_interface:
+        logger.info(f"Disabling promiscuous mode on {state.promisc_interface}...")
+        try:
+            subprocess.run(["sudo", "-n", "ip", "link", "set", state.promisc_interface, "promisc", "off"], check=True, capture_output=True)
+        except Exception as e:
+            logger.warning(f"Failed to disable promiscuous mode on {state.promisc_interface}: {e}")
+        finally:
+            state.promisc_interface = None
+            
+    # 3. Stop Mininet network
         logger.info("Stopping Containernet network...")
         try:
             state.net.stop()
@@ -76,7 +89,7 @@ def teardown_environment():
         finally:
             state.net = None
             
-    # 2. Cleanup Mininet
+    # 4. Cleanup Mininet
     logger.info("Running 'mn -c' to clean virtual network interfaces...")
     try:
         subprocess.run(["sudo", "-n", "mn", "-c"], check=True, capture_output=True)
@@ -105,8 +118,25 @@ async def start_network(req: NetworkStartRequest):
                 raise HTTPException(status_code=500, detail=f"Simulation failed: {e}")
         else:
             logger.warning("Containernet module missing, running in dry-run mode.")
+            
+    elif req.mode == "live":
+        if not req.interface:
+            raise HTTPException(status_code=400, detail="An interface must be specified for live mode.")
+            
+        if build_live_topology:
+            try:
+                state.net = build_live_topology(req.interface)
+                state.promisc_interface = req.interface
+                logger.info(f"Live mode started on interface {req.interface}.")
+            except Exception as e:
+                logger.error(f"Failed to start live topology: {e}")
+                state.status = "error"
+                raise HTTPException(status_code=500, detail=f"Live simulation failed: {e}")
+        else:
+            logger.warning("Containernet module missing, running in dry-run mode.")
+            state.promisc_interface = req.interface
     
-    return {"status": "success", "message": "Network started in simulation mode"}
+    return {"status": "success", "message": f"Network started in {req.mode} mode"}
 
 @app.post("/api/attacks/trigger")
 async def trigger_attack(req: AttackRequest):
