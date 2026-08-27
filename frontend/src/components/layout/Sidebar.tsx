@@ -1,4 +1,4 @@
-import { ChangeEvent } from "react";
+import { type ChangeEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +12,58 @@ import {
 } from "@/components/ui/select";
 import { Play, Square, Crosshair, Terminal, Zap } from "lucide-react";
 
+const API_BASE = "http://127.0.0.1:8000/api";
+
 export function Sidebar() {
-  const handleAction = (action: string) => {
-    console.log(`[Action Triggered] ${action}`);
+  const [mode, setMode] = useState<string>("simulation");
+  const [nodeCount, setNodeCount] = useState<number>(10);
+  const [deviceType, setDeviceType] = useState<string>("camera");
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const startNetwork = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/network/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, node_count: nodeCount, device_type: deviceType })
+      });
+      const data = await res.json();
+      console.log(data);
+    } catch (e) {
+      console.error("Failed to start network:", e);
+    }
+    setLoading(false);
+  };
+
+  const stopSystem = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/system/stop`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      console.log(data);
+    } catch (e) {
+      console.error("Failed to stop system:", e);
+    }
+    setLoading(false);
+  };
+
+  const triggerAttack = async (attackType: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/attacks/trigger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attack_type: attackType })
+      });
+      const data = await res.json();
+      console.log(data);
+    } catch (e) {
+      console.error(`Failed to trigger attack ${attackType}:`, e);
+    }
+    setLoading(false);
   };
 
   return (
@@ -26,7 +75,7 @@ export function Sidebar() {
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Mode Configuration</h3>
           <div className="space-y-2">
             <Label>System Mode</Label>
-            <Select defaultValue="simulation" onValueChange={(v: string) => handleAction(`Mode changed to: ${v}`)}>
+            <Select value={mode} onValueChange={setMode} disabled={loading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select operating mode" />
               </SelectTrigger>
@@ -46,12 +95,18 @@ export function Sidebar() {
           
           <div className="space-y-2">
             <Label htmlFor="node-count">Node Count</Label>
-            <Input id="node-count" type="number" defaultValue={10} onChange={(e: ChangeEvent<HTMLInputElement>) => handleAction(`Node Count changed: ${e.target.value}`)} />
+            <Input 
+              id="node-count" 
+              type="number" 
+              value={nodeCount} 
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setNodeCount(parseInt(e.target.value) || 0)} 
+              disabled={loading}
+            />
           </div>
 
           <div className="space-y-2">
             <Label>Primary Device Type</Label>
-            <Select defaultValue="camera" onValueChange={(v: string) => handleAction(`Device Type changed: ${v}`)}>
+            <Select value={deviceType} onValueChange={setDeviceType} disabled={loading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select device type" />
               </SelectTrigger>
@@ -70,10 +125,10 @@ export function Sidebar() {
         <div className="space-y-4">
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Network Controls</h3>
           <div className="grid grid-cols-2 gap-3">
-            <Button className="w-full gap-2" onClick={() => handleAction("Start Network")}>
+            <Button className="w-full gap-2" onClick={startNetwork} disabled={loading}>
               <Play className="w-4 h-4" /> Start
             </Button>
-            <Button variant="secondary" className="w-full gap-2" onClick={() => handleAction("Stop System")}>
+            <Button variant="secondary" className="w-full gap-2" onClick={stopSystem} disabled={loading}>
               <Square className="w-4 h-4" /> Stop
             </Button>
           </div>
@@ -85,13 +140,13 @@ export function Sidebar() {
         <div className="space-y-4">
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Attack Triggers</h3>
           <div className="space-y-3">
-            <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => handleAction("Attack: Reconnaissance (Nmap)")}>
+            <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => triggerAttack("reconnaissance")} disabled={loading}>
               <Terminal className="w-4 h-4" /> Reconnaissance (Nmap)
             </Button>
-            <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => handleAction("Attack: Brute Force (Hydra)")}>
+            <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => triggerAttack("bruteforce")} disabled={loading}>
               <Crosshair className="w-4 h-4" /> Brute Force (Hydra)
             </Button>
-            <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => handleAction("Attack: SYN Flood (Hping3)")}>
+            <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => triggerAttack("synflood")} disabled={loading}>
               <Zap className="w-4 h-4" /> SYN Flood (Hping3)
             </Button>
           </div>
